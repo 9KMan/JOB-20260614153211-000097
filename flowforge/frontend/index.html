@@ -1,0 +1,256 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>FlowForge — AI Workflow Automation</title>
+  <link rel="preconnect" href="https://rsms.me/" />
+  <link rel="stylesheet" href="https://rsms.me/inter/inter.css" />
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link rel="stylesheet" href="/static/styles.css" />
+  <script>
+    tailwind.config = {
+      theme: {
+        extend: {
+          colors: {
+            primary:   { DEFAULT: "#0369A1", 50: "#F0F9FF", 100: "#E0F2FE", 500: "#0EA5E9", 700: "#0369A1", 900: "#0C4A6E" },
+            secondary: "#0EA5E9",
+            accent:    "#16A34A",
+            background:"#F0F9FF",
+            foreground:"#0C4A6E",
+            ink:       "#0C4A6E",
+            muted:     "#64748B",
+            line:      "#E2E8F0",
+            danger:    "#DC2626",
+            warn:      "#D97706",
+          },
+          fontFamily: {
+            sans: ["Inter", "system-ui", "sans-serif"],
+          },
+        },
+      },
+    };
+  </script>
+</head>
+<body class="bg-background text-ink font-sans min-h-screen">
+  <!-- Top bar -->
+  <header class="border-b border-line bg-white">
+    <div class="max-w-7xl mx-auto px-6 h-16 flex items-center justify-between">
+      <div class="flex items-center gap-2">
+        <div class="w-8 h-8 bg-primary text-white grid place-items-center rounded-md font-bold">F</div>
+        <span class="font-semibold text-lg tracking-tight">FlowForge</span>
+        <span class="hidden sm:inline text-xs text-muted ml-2">AI Workflow Automation</span>
+      </div>
+      <nav class="flex items-center gap-1">
+        <button data-view="dashboard"   class="nav-btn px-3 py-2 text-sm rounded-md hover:bg-primary-50 cursor-pointer transition-colors duration-150">Dashboard</button>
+        <button data-view="workflows"   class="nav-btn px-3 py-2 text-sm rounded-md hover:bg-primary-50 cursor-pointer transition-colors duration-150">Workflows</button>
+        <button data-view="integrations" class="nav-btn px-3 py-2 text-sm rounded-md hover:bg-primary-50 cursor-pointer transition-colors duration-150">Integrations</button>
+        <button data-view="agents"      class="nav-btn px-3 py-2 text-sm rounded-md hover:bg-primary-50 cursor-pointer transition-colors duration-150">Agents</button>
+        <button data-view="etl"         class="nav-btn px-3 py-2 text-sm rounded-md hover:bg-primary-50 cursor-pointer transition-colors duration-150">ETL</button>
+        <button data-view="audit"       class="nav-btn px-3 py-2 text-sm rounded-md hover:bg-primary-50 cursor-pointer transition-colors duration-150">Audit</button>
+        <button data-view="docs"        class="nav-btn px-3 py-2 text-sm rounded-md hover:bg-primary-50 cursor-pointer transition-colors duration-150">Docs</button>
+      </nav>
+      <div class="flex items-center gap-3">
+        <span id="who" class="text-sm text-muted"></span>
+        <button id="logout" class="hidden text-sm text-muted hover:text-ink px-2 py-1 rounded cursor-pointer transition-colors duration-150">Sign out</button>
+      </div>
+    </div>
+  </header>
+
+  <main class="max-w-7xl mx-auto px-6 py-8">
+    <!-- Login view -->
+    <section id="view-login" class="hidden">
+      <div class="max-w-md mx-auto mt-16 bg-white border border-line rounded-lg p-8">
+        <h1 class="text-2xl font-semibold mb-1">Sign in</h1>
+        <p class="text-sm text-muted mb-6">Use the demo account or your own credentials.</p>
+        <form id="login-form" class="space-y-4">
+          <label class="block">
+            <span class="text-sm font-medium">Email</span>
+            <input name="email" type="email" required value="demo@flowforge.example" /
+                   class="mt-1 w-full px-3 py-2 border border-line rounded-md focus:outline-none focus:border-primary cursor-text" />
+          </label>
+          <label class="block">
+            <span class="text-sm font-medium">Password</span>
+            <input name="password" type="password" required value="flowforge-demo"
+                   class="mt-1 w-full px-3 py-2 border border-line rounded-md focus:outline-none focus:border-primary cursor-text" />
+          </label>
+          <button type="submit" class="w-full bg-primary text-white py-2 rounded-md hover:bg-primary-700 cursor-pointer transition-colors duration-150">Sign in</button>
+          <p id="login-error" class="text-sm text-danger hidden"></p>
+        </form>
+        <p class="text-xs text-muted mt-6">First time? Run <code>python -m flowforge.scripts.seed</code> to create the demo account.</p>
+      </div>
+    </section>
+
+    <!-- App views -->
+    <section id="view-dashboard" class="view hidden">
+      <div class="flex items-center justify-between mb-6">
+        <h1 class="text-2xl font-semibold">Dashboard</h1>
+        <button id="refresh-dashboard" class="text-sm px-3 py-2 border border-line rounded-md hover:bg-primary-50 cursor-pointer transition-colors duration-150">Refresh</button>
+      </div>
+      <div id="kpi-row" class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-8"></div>
+      <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+        <div class="bg-white border border-line rounded-lg p-5">
+          <h2 class="text-lg font-semibold mb-3">Active schedules</h2>
+          <div id="schedules" class="text-sm text-muted">No schedules.</div>
+        </div>
+        <div class="bg-white border border-line rounded-lg p-5">
+          <h2 class="text-lg font-semibold mb-3">Recent runs</h2>
+          <div id="recent-runs" class="text-sm text-muted">No runs yet.</div>
+        </div>
+      </div>
+    </section>
+
+    <section id="view-workflows" class="view hidden">
+      <div class="flex items-center justify-between mb-6">
+        <h1 class="text-2xl font-semibold">Workflows</h1>
+        <button id="new-workflow" class="bg-primary text-white px-4 py-2 rounded-md hover:bg-primary-700 cursor-pointer transition-colors duration-150">New workflow</button>
+      </div>
+      <div id="workflows-list" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4"></div>
+    </section>
+
+    <section id="view-integrations" class="view hidden">
+      <div class="flex items-center justify-between mb-6">
+        <h1 class="text-2xl font-semibold">Integrations</h1>
+        <button id="new-integration" class="bg-primary text-white px-4 py-2 rounded-md hover:bg-primary-700 cursor-pointer transition-colors duration-150">New integration</button>
+      </div>
+      <div id="integrations-list" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4"></div>
+    </section>
+
+    <section id="view-agents" class="view hidden">
+      <div class="flex items-center justify-between mb-6">
+        <h1 class="text-2xl font-semibold">Agents</h1>
+        <button id="new-agent" class="bg-primary text-white px-4 py-2 rounded-md hover:bg-primary-700 cursor-pointer transition-colors duration-150">New agent</button>
+      </div>
+      <div id="agents-list" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4"></div>
+      <div class="mt-10 bg-white border border-line rounded-lg p-5">
+        <h2 class="text-lg font-semibold mb-3">Try the LLM</h2>
+        <form id="llm-form" class="space-y-3">
+          <label class="block">
+            <span class="text-sm font-medium">Prompt</span>
+            <textarea name="prompt" required rows="3"
+                      class="mt-1 w-full px-3 py-2 border border-line rounded-md focus:outline-none focus:border-primary cursor-text"
+                      placeholder="Summarize the goals of the holding company."></textarea>
+          </label>
+          <div class="grid grid-cols-1 sm:grid-cols-3 gap-3">
+            <label class="block">
+              <span class="text-sm font-medium">Provider</span>
+              <select name="provider" class="mt-1 w-full px-3 py-2 border border-line rounded-md bg-white cursor-pointer">
+                <option value="stub">stub (offline)</option>
+                <option value="openai">openai</option>
+                <option value="anthropic">anthropic</option>
+              </select>
+            </label>
+            <label class="block">
+              <span class="text-sm font-medium">Model</span>
+              <input name="model" placeholder="(default)" class="mt-1 w-full px-3 py-2 border border-line rounded-md focus:outline-none focus:border-primary cursor-text" />
+            </label>
+            <label class="block">
+              <span class="text-sm font-medium">Temperature</span>
+              <input name="temperature" type="number" step="0.1" min="0" max="1.5" value="0.2"
+                     class="mt-1 w-full px-3 py-2 border border-line rounded-md focus:outline-none focus:border-primary cursor-text" />
+            </label>
+          </div>
+          <button type="submit" class="bg-accent text-white px-4 py-2 rounded-md hover:opacity-90 cursor-pointer transition-opacity duration-150">Run</button>
+        </form>
+        <pre id="llm-output" class="mt-4 p-3 bg-primary-50 border border-line rounded-md text-sm whitespace-pre-wrap hidden"></pre>
+      </div>
+    </section>
+
+    <section id="view-etl" class="view hidden">
+      <div class="flex items-center justify-between mb-6">
+        <h1 class="text-2xl font-semibold">ETL</h1>
+      </div>
+      <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+        <div class="bg-white border border-line rounded-lg p-5">
+          <h2 class="text-lg font-semibold mb-3">Run an ETL job</h2>
+          <p class="text-sm text-muted mb-3">Sources: <code>inline</code> · <code>json</code> · <code>csv</code> · <code>http</code></p>
+          <form id="etl-form" class="space-y-3">
+            <label class="block">
+              <span class="text-sm font-medium">Source</span>
+              <select name="kind" class="mt-1 w-full px-3 py-2 border border-line rounded-md bg-white cursor-pointer">
+                <option value="inline">inline (paste JSON rows)</option>
+                <option value="json">json (paste JSON)</option>
+                <option value="csv">csv (paste CSV)</option>
+                <option value="http">http (URL + method)</option>
+              </select>
+            </label>
+            <label class="block">
+              <span class="text-sm font-medium">Source body</span>
+              <textarea name="body" rows="6" class="mt-1 w-full px-3 py-2 border border-line rounded-md focus:outline-none focus:border-primary cursor-text font-mono text-xs"
+                        placeholder='[{"id":1,"name":"Acme"},{"id":2,"name":"Globex"}]'></textarea>
+            </label>
+            <label class="block">
+              <span class="text-sm font-medium">Transform (rename JSON)</span>
+              <input name="transform" placeholder='{"rename":{"name":"company"}}'
+                     class="mt-1 w-full px-3 py-2 border border-line rounded-md focus:outline-none focus:border-primary cursor-text font-mono text-xs" />
+            </label>
+            <button type="submit" class="bg-accent text-white px-4 py-2 rounded-md hover:opacity-90 cursor-pointer transition-opacity duration-150">Run</button>
+          </form>
+        </div>
+        <div class="bg-white border border-line rounded-lg p-5">
+          <h2 class="text-lg font-semibold mb-3">Result</h2>
+          <pre id="etl-output" class="text-sm whitespace-pre-wrap text-muted">Run a job to see results.</pre>
+        </div>
+      </div>
+    </section>
+
+    <section id="view-audit" class="view hidden">
+      <div class="flex items-center justify-between mb-6">
+        <h1 class="text-2xl font-semibold">Audit log</h1>
+        <button id="refresh-audit" class="text-sm px-3 py-2 border border-line rounded-md hover:bg-primary-50 cursor-pointer transition-colors duration-150">Refresh</button>
+      </div>
+      <div id="audit-list" class="bg-white border border-line rounded-lg divide-y divide-line"></div>
+    </section>
+
+    <section id="view-docs" class="view hidden">
+      <h1 class="text-2xl font-semibold mb-6">Docs</h1>
+      <div class="bg-white border border-line rounded-lg p-6 prose max-w-none">
+        <h2 class="text-xl font-semibold">Workflow definition</h2>
+        <pre class="bg-primary-50 p-3 rounded-md text-xs whitespace-pre-wrap">{
+  "steps": [
+    { "id": "fetch", "name": "Fetch data", "type": "http", "config": { "method": "GET", "url": "https://api.example.com/leads" } },
+    { "id": "summarize", "name": "Summarize", "type": "ai", "config": { "prompt": "Summarize ${{ steps.fetch.json }}", "system": "Be brief." } },
+    { "id": "notify", "name": "Notify Slack", "type": "slack", "config": { "text": "Summary: ${{ steps.summarize.text }}" } }
+  ]
+}</pre>
+        <h2 class="text-xl font-semibold mt-6">Triggers</h2>
+        <ul class="list-disc pl-6 text-sm">
+          <li><code>manual</code> — run from the dashboard or via POST /workflows/&#123;id&#125;/run</li>
+          <li><code>schedule</code> — cron-like, 5 or 6 fields (e.g. <code>0 9 * * 1</code> for Mon 09:00 UTC)</li>
+          <li><code>webhook</code> — POST <code>/api/v1/public/webhook/&#123;workflow_id&#125;</code></li>
+        </ul>
+        <h2 class="text-xl font-semibold mt-6">Built-in step types</h2>
+        <ul class="list-disc pl-6 text-sm">
+          <li><code>http</code> — call any HTTP endpoint (GET/POST/PUT/DELETE/PATCH)</li>
+          <li><code>ai</code> — call OpenAI / Anthropic / stub LLM</li>
+          <li><code>email</code> — send SMTP email (or preview in dev)</li>
+          <li><code>slack</code> — post a message via Slack incoming webhook</li>
+          <li><code>transform</code> — extract a JSON value with JMESPath</li>
+          <li><code>condition</code> — compare and branch</li>
+          <li><code>delay</code> — pause for up to 30 seconds</li>
+          <li><code>log</code> — record a log line</li>
+        </ul>
+        <h2 class="text-xl font-semibold mt-6">API</h2>
+        <p class="text-sm">Open <a href="/docs" class="text-primary underline">/docs</a> for the OpenAPI explorer.</p>
+      </div>
+    </section>
+  </main>
+
+  <!-- Modals -->
+  <div id="modal" class="hidden fixed inset-0 bg-foreground/30 z-50 grid place-items-center p-4">
+    <div class="bg-white rounded-lg max-w-2xl w-full max-h-[90vh] overflow-y-auto border border-line">
+      <div class="px-5 py-3 border-b border-line flex items-center justify-between">
+        <h3 id="modal-title" class="font-semibold"></h3>
+        <button id="modal-close" class="text-muted hover:text-ink cursor-pointer">×</button>
+      </div>
+      <div id="modal-body" class="p-5"></div>
+    </div>
+  </div>
+
+  <footer class="border-t border-line mt-16 py-6 text-center text-xs text-muted">
+    FlowForge · v0.1.0 · <a href="/docs" class="underline">API docs</a> · <a href="/healthz" class="underline">Health</a>
+  </footer>
+
+  <script src="/static/app.js"></script>
+</body>
+</html>

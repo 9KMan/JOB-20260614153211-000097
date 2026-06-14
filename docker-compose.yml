@@ -1,0 +1,53 @@
+# docker-compose for local dev. Override DATABASE_URL to point at a
+# managed Postgres in production.
+version: "3.9"
+
+services:
+  app:
+    build: .
+    image: flowforge:latest
+    container_name: flowforge-app
+    environment:
+      APP_NAME: FlowForge
+      ENV: development
+      HOST: 0.0.0.0
+      PORT: "8000"
+      DATABASE_URL: postgresql+psycopg://flowforge:flowforge@db:5432/flowforge
+      JWT_SECRET: ${JWT_SECRET:-dev-secret-change-me-please-use-32-bytes-min}
+      LLM_PROVIDER: ${LLM_PROVIDER:-stub}
+      LLM_API_KEY: ${LLM_API_KEY:-}
+      CORS_ORIGINS: "http://localhost:3000,http://localhost:8000,http://localhost:5173"
+      SMTP_HOST: ${SMTP_HOST:-}
+      SMTP_PORT: ${SMTP_PORT:-587}
+      SMTP_USER: ${SMTP_USER:-}
+      SMTP_PASSWORD: ${SMTP_PASSWORD:-}
+      SMTP_FROM: ${SMTP_FROM:-noreply@flowforge.example}
+      SLACK_WEBHOOK_URL: ${SLACK_WEBHOOK_URL:-}
+    depends_on:
+      db:
+        condition: service_healthy
+    ports:
+      - "8000:8000"
+    command: >
+      sh -c "python -m flowforge.scripts.seed || true &&
+             python -m uvicorn flowforge.api.main:app --host 0.0.0.0 --port 8000"
+
+  db:
+    image: postgres:16-alpine
+    container_name: flowforge-db
+    environment:
+      POSTGRES_USER: flowforge
+      POSTGRES_PASSWORD: flowforge
+      POSTGRES_DB: flowforge
+    volumes:
+      - flowforge-pgdata:/var/lib/postgresql/data
+    ports:
+      - "5432:5432"
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U flowforge -d flowforge"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+volumes:
+  flowforge-pgdata:

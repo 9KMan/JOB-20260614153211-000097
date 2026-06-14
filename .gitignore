@@ -1,0 +1,61 @@
+# ---------- Python ----------
+__pycache__/
+*.py[cod]
+*.so
+*.egg-info/
+*.egg
+.eggs/
+build/
+dist/
+.venv/
+venv/
+env/
+
+# ---------- Test / coverage ----------
+.pytest_cache/
+.coverage
+.coverage.*
+htmlcov/
+.tox/
+.cache/
+coverage.xml
+
+# ---------- IDEs ----------
+.idea/
+.vscode/
+*.swp
+*.swo
+.DS_Store
+*.iml
+
+# ---------- Local DB / runtime ----------
+*.db
+*.sqlite
+*.sqlite3
+flowforge.db
+flowforge.db-journal
+
+# ---------- Logs ----------
+*.log
+logs/
+flowforge.log
+
+# ---------- Secrets / env ----------
+.env
+.env.local
+.env.*.local
+
+# ---------- Worker-internal files (NEVER push to GitHub) ----------
+SPEC.txt
+TASK.txt
+pid
+role
+worker.log
+PROPOSAL.md
+COVER_LETTER.txt
+
+# ---------- OS / misc ----------
+Thumbs.db
+node_modules/
+.npm/
+.pnp.*
